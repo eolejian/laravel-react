@@ -12,15 +12,14 @@ trait Reacts
     /**
      * Reaction on reactable model.
      *
-     * @param  ReactableInterface $reactable
-     * @param  mixed              $type
-     * @return Reaction
+     * @param ReactableInterface $reactable
+     * @param $type
+     * @return mixed|Reaction
+     * @throws \Exception
      */
     public function reactTo(ReactableInterface $reactable, $type)
     {
-        $reaction = $reactable->reactions()->where([
-            'user_id' => $this->getKey(),
-        ])->first();
+        $reaction = $this->getReaction($reactable, $type);
 
         if (! $reaction) {
             return $this->storeReaction($reactable, $type);
@@ -38,14 +37,12 @@ trait Reacts
     /**
      * Remove reaction from reactable model.
      *
-     * @param  ReactableInterface $reactable
-     * @return void
+     * @param ReactableInterface $reactable
+     * @throws \Exception
      */
     public function removeReactionFrom(ReactableInterface $reactable)
     {
-        $reaction = $reactable->reactions()->where([
-            'user_id' => $this->getKey(),
-        ])->first();
+        $reaction = $this->getReaction($reactable);
 
         if (! $reaction) {
             return;
@@ -57,15 +54,14 @@ trait Reacts
     /**
      * Toggle reaction on reactable model.
      *
-     * @param  ReactableInterface $reactable
-     * @param  mixed              $type
-     * @return void
+     * @param ReactableInterface $reactable
+     * @param $type
+     * @return Reaction|void
+     * @throws \Exception
      */
     public function toggleReactionOn(ReactableInterface $reactable, $type)
     {
-        $reaction = $reactable->reactions()->where([
-            'user_id' => $this->getKey(),
-        ])->first();
+        $reaction = $this->getReaction($reactable, $type);
 
         if (! $reaction) {
             return $this->storeReaction($reactable, $type);
@@ -86,7 +82,7 @@ trait Reacts
      * @param  ReactableInterface $reactable
      * @return Reaction
      */
-    public function ReactedOn(ReactableInterface $reactable)
+    public function reactedOn(ReactableInterface $reactable)
     {
         return $reactable->reacted($this);
     }
@@ -116,9 +112,9 @@ trait Reacts
     /**
      * Store reaction.
      *
-     * @param  ReactableInterface                       $reactable
-     * @param  mixed                                    $type
-     * @return \Qirolab\Laravel\Reactions\Models\Reaction
+     * @param ReactableInterface $reactable
+     * @param $type
+     * @return \Illuminate\Database\Eloquent\Model
      */
     protected function storeReaction(ReactableInterface $reactable, $type)
     {
@@ -135,9 +131,10 @@ trait Reacts
     /**
      * Delete reaction.
      *
-     * @param  Reaction           $reaction
-     * @param  ReactableInterface $reactable
-     * @return void
+     * @param Reaction $reaction
+     * @param ReactableInterface $reactable
+     * @return bool|null
+     * @throws \Exception
      */
     protected function deleteReaction(Reaction $reaction, ReactableInterface $reactable)
     {
@@ -146,5 +143,21 @@ trait Reacts
         event(new OnDeleteReaction($reactable, $reaction, $this));
 
         return $response;
+    }
+
+    /**
+     * @param ReactableInterface $reactable
+     * @param null $type
+     * @return mixed
+     */
+    private function getReaction(ReactableInterface $reactable, $type = null)
+    {
+        $query_array = ['user_id' => $this->getKey()];
+
+        if(!! $type){
+            $query_array = array_merge($query_array,['type' => $type]);
+        }
+
+        return $reactable->reactions()->where($query_array)->first();
     }
 }
