@@ -59,7 +59,5 @@
                 "Qirolab\\Laravel\\Reactions\\ReactionsServiceProvider"
             ]
         }
-    },
-    "minimum-stability": "dev",
-    "prefer-stable" : true
+    }
 }

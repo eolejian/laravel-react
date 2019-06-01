@@ -311,6 +311,42 @@ class ReactableTest extends TestCase
         ], $summaryAsArray);
     }
 
+    /** @test */
+    public function it_can_get_reaction_summery_count_by_type()
+    {
+        $article = factory(Article::class)->create();
+
+        $users = factory(User::class, 5)->create();
+        foreach ($users as $key => $user) {
+            $article->react('like', $user);
+        }
+
+        $users = factory(User::class, 2)->create();
+        foreach ($users as $key => $user) {
+            $article->react('dislike', $user);
+        }
+
+        $users = factory(User::class, 4)->create();
+        foreach ($users as $key => $user) {
+            $article->react('clap', $user);
+        }
+
+        $users = factory(User::class, 1)->create();
+        foreach ($users as $key => $user) {
+            $article->react('hooray', $user);
+        }
+
+        $likes = $article->react_type_count('like');
+        $dislikes = $article->react_type_count('dislike');
+        $claps = $article->react_type_count('clap');
+        $hoorays = $article->react_type_count('hooray');
+
+        $this->assertEquals(5, $likes);
+        $this->assertEquals(2, $dislikes);
+        $this->assertEquals(4, $claps);
+        $this->assertEquals(1, $hoorays);
+    }
+
     /** @test **/
     public function it_can_has_collection_of_reactions_by_users()
     {

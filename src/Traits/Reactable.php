@@ -66,6 +66,17 @@ trait Reactable
     }
 
     /**
+     * @param $type
+     * @return int
+     */
+    public function reactTypeCount($type)
+    {
+        $reaction = $this->reactionSummary->toArray();
+
+        return isset($reaction[$type]) ?: 0;
+    }
+
+    /**
      * Add reaction.
      *
      * @param  mixed         $reactionType
