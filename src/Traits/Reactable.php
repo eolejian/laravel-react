@@ -20,21 +20,27 @@ trait Reactable
     }
 
     /**
-     * Get collection of users who reacted on reactable model.
+     * Get collection of reacters who reacted on reactable model.
      *
      * @return \Illuminate\Support\Collection
      */
-    public function reactionsBy()
+    public function reactionsBy($model = null, $type = null)
     {
-        $userModel = $this->resolveUserModel();
+        $model = $model ?: $this->resolveUserModel();
 
-        $userIds = $this->reactions->pluck('user_id');
+        $reactions = $this->reactions;
 
-        return $userModel::whereKey($userIds)->get();
+        if($type){
+            $reactions = $reactions->where('type', $type);
+        }
+
+        $ids = $reactions->pluck('reacter_id');
+
+        return $model::whereIn('id', $ids)->get();
     }
 
     /**
-     * Attribute to get collection of users who reacted on reactable model.
+     * Attribute to get collection of reacters who reacted on reactable model.
      *
      * @return \Illuminate\Support\Collection
      */
@@ -48,9 +54,9 @@ trait Reactable
      *
      * @return \Illuminate\Database\Eloquent\Collection|static[]
      */
-    public function reactionSummary()
+    public function reactionSummary($by = 'type')
     {
-        return $this->reactions->groupBy('type')->map(function ($val) {
+        return $this->reactions->groupBy($by)->map(function ($val) {
             return $val->count();
         });
     }
@@ -66,29 +72,18 @@ trait Reactable
     }
 
     /**
-     * @param $type
-     * @return int
-     */
-    public function reactTypeCount($type)
-    {
-        $reaction = $this->reactionSummary->toArray();
-
-        return isset($reaction[$type]) ?: 0;
-    }
-
-    /**
      * Add reaction.
      *
-     * @param  mixed         $reactionType
-     * @param  mixed         $user
-     * @return Reaction|bool
+     * @param $reactionType
+     * @param null $model
+     * @return bool|void
      */
-    public function react($reactionType, $user = null)
+    public function react($reactionType, $model = null)
     {
-        $user = $this->getUser($user);
+        $model = $model ?: $this->getUser($user);
 
-        if ($user) {
-            return $user->reactTo($this, $reactionType);
+        if ($model) {
+            return $model->reactTo($this, $reactionType);
         }
 
         return false;
@@ -97,15 +92,15 @@ trait Reactable
     /**
      * Remove reaction.
      *
-     * @param  mixed $user
+     * @param null $model
      * @return bool
      */
-    public function removeReaction($user = null)
+    public function removeReaction($model = null)
     {
-        $user = $this->getUser($user);
+        $model = $model ?: $this->getUser($user);
 
-        if ($user) {
-            return $user->removeReactionFrom($this);
+        if ($model) {
+            return $model->removeReactionFrom($this);
         }
 
         return false;
@@ -114,36 +109,38 @@ trait Reactable
     /**
      * Toggle Reaction.
      *
-     * @param  mixed $reactionType
-     * @param  mixed $user
-     * @return void|Reaction
+     * @param $reactionType
+     * @param null $model
+     * @return mixed
      */
-    public function toggleReaction($reactionType, $user = null)
+    public function toggleReaction($reactionType, $model = null)
     {
-        $user = $this->getUser($user);
+        $model = $model ?: $this->getUser();
 
-        if ($user) {
-            return $user->toggleReactionOn($this, $reactionType);
+        if ($model) {
+            return $model->toggleReactionOn($this, $reactionType);
         }
     }
 
     /**
-     * Reaction on reactable model by user.
+     * Reaction on reactable model by reacter.
      *
-     * @param mixed $user
-     * @return Reaction
+     * @param null $model
+     * @return mixed
      */
-    public function reacted($user = null)
+    public function reacted($model = null)
     {
-        $user = $this->getUser($user);
+        $model = $model ?: $this->getUser();
 
-        return $this->reactions->where('user_id', $user->getKey())->first();
+        return $this->reactions
+                    ->where(['reacter_id' => $model->id, 'reacter_type' => get_class($model)])
+                    ->first();
     }
 
     /**
-     * Reaction on reactable model by user.
+     * Reaction on reactable model by reacter.
      *
-     * @return Reaction
+     * @return mixed
      */
     public function getReactedAttribute()
     {
@@ -151,26 +148,26 @@ trait Reactable
     }
 
     /**
-     * Check is reacted by user.
+     * Check if a type is reacted by reacter.
      *
-     * @param  mixed $user
+     * @param null $model
+     * @param null $type
      * @return bool
      */
-    public function isReactBy($user = null, $type = null)
+    public function isReactBy($model = null, $type = null)
     {
-        $user = $this->getUser($user);
+        $model = $model ?: $this->getUser($user);
 
-        if ($user) {
-            return $user->isReactedOn($this, $type);
+        if ($model) {
+            return $model->isReactedOn($this, $type);
         }
 
         return false;
     }
 
     /**
-     * Check is reacted by user.
+     * Check if a type is reacted by reacter.
      *
-     * @param  mixed $user
      * @return bool
      */
     public function getIsReactedAttribute()
@@ -179,32 +176,27 @@ trait Reactable
     }
 
     /**
-     * Fetch records that are reacted by a given user.
+     * Fetch records that are reacted by a given reacter.
      *
      * @todo think about method name
-     * @param  \Illuminate\Database\Eloquent\Builder $query
-     * @param  string                                $type
-     * @param  null|int|ReactsInterface              $userId
-     * @return \Illuminate\Database\Eloquent\Builder
+     * @param Builder $query
+     * @param null $model
+     * @param null $type
+     * @return Builder
      *
      * @throw \Qirolab\Laravel\Reactions\Exceptions\InvalidReactionUser
      */
-    public function scopeWhereReactedBy(Builder $query, $userId = null, $type = null)
+    public function scopeWhereReactedBy(Builder $query, $model = null, $type = null)
     {
-        $user = null;
-
         try {
-            $user = $this->getUser($userId);
+            $model = $model ?: $this->getUser();
         } catch (InvalidReactionUser $e) {
-            if (! $user && ! $userId) {
-                throw InvalidReactionUser::notDefined();
-            }
+            throw InvalidReactionUser::notDefined();
         }
 
-        $userId = ($user) ? $user->getKey() : $userId;
-
-        return $query->whereHas('reactions', function ($innerQuery) use ($userId, $type) {
-            $innerQuery->where('user_id', $userId);
+        return $query->whereHas('reactions', function ($innerQuery) use ($model, $type) {
+            $innerQuery->where('reacter_id', $model->id)
+                        ->where('reacter_type', get_class($model));
 
             if ($type) {
                 $innerQuery->where('type', $type);

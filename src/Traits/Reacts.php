@@ -97,7 +97,8 @@ trait Reacts
     public function isReactedOn(ReactableInterface $reactable, $type = null)
     {
         $isReacted = $reactable->reactions()->where([
-            'user_id' => $this->getKey(),
+            'reacter_id' => $this->getKey(),
+            'reacter_type' => get_class($this),
         ]);
 
         if ($type) {
@@ -119,7 +120,8 @@ trait Reacts
     protected function storeReaction(ReactableInterface $reactable, $type)
     {
         $reaction = $reactable->reactions()->create([
-            'user_id' => $this->getKey(),
+            'reacter_id' => $this->getKey(),
+            'reacter_type' => get_class($this),
             'type' => $type,
         ]);
 
@@ -152,7 +154,7 @@ trait Reacts
      */
     private function getReaction(ReactableInterface $reactable, $type = null)
     {
-        $query_array = ['user_id' => $this->getKey()];
+        $query_array = ['reacter_id' => $this->getKey(), 'reacter_type' => get_class($this)];
 
         if(!! $type){
             $query_array = array_merge($query_array,['type' => $type]);

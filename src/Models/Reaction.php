@@ -18,7 +18,8 @@ class Reaction extends Model
      * @var array
      */
     protected $fillable = [
-        'user_id',
+        'reacter_id',
+        'reacter_type',
         'type',
     ];
 
@@ -37,10 +38,10 @@ class Reaction extends Model
      *
      * @return \Illuminate\Database\Eloquent\Relations\belongsTo
      */
-    public function reactBy()
+    public function reactBy($model = null)
     {
-        $userModel = config('auth.providers.users.model');
-
-        return $this->belongsTo($userModel, 'user_id');
+        $model = $model ?: config('auth.providers.users.model');
+        
+        return $this->belongsTo($model, 'reacter_id');
     }
 }
