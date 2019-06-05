@@ -18,17 +18,17 @@ class CreateReactionsTable extends Migration
     {
         Schema::create('reactions', function (Blueprint $table) {
             $table->increments('id');
-            $table->unsignedInteger('user_id')->index();
+            $table->morphs('reacter');
             $table->morphs('reactable');
-            $table->string('type');
+            $table->string('type')->nullable();
             $table->timestamps();
             $table->unique([
-                'reactable_type',
+                'reacter_id',
+                'reacter_type',
                 'reactable_id',
-                'user_id',
+                'reactable_type',
                 'type',
-            ], 'react_user_unique');
-            // $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
+            ], 'react_unique');
         });
     }
 
