@@ -22,7 +22,9 @@ trait Reactable
     /**
      * Get collection of reacters who reacted on reactable model.
      *
-     * @return \Illuminate\Support\Collection
+     * @param null $model
+     * @param null $type
+     * @return mixed
      */
     public function reactionsBy($model = null, $type = null)
     {
@@ -52,7 +54,8 @@ trait Reactable
     /**
      * Reaction summary.
      *
-     * @return \Illuminate\Database\Eloquent\Collection|static[]
+     * @param string $by
+     * @return mixed
      */
     public function reactionSummary($by = 'type')
     {
@@ -80,7 +83,7 @@ trait Reactable
      */
     public function react($reactionType, $model = null)
     {
-        $model = $model ?: $this->getUser($user);
+        $model = $model ?: $this->getUser();
 
         if ($model) {
             return $model->reactTo($this, $reactionType);
@@ -97,7 +100,7 @@ trait Reactable
      */
     public function removeReaction($model = null)
     {
-        $model = $model ?: $this->getUser($user);
+        $model = $model ?: $this->getUser();
 
         if ($model) {
             return $model->removeReactionFrom($this);
@@ -156,7 +159,7 @@ trait Reactable
      */
     public function isReactBy($model = null, $type = null)
     {
-        $model = $model ?: $this->getUser($user);
+        $model = $model ?: $this->getUser();
 
         if ($model) {
             return $model->isReactedOn($this, $type);
@@ -207,26 +210,15 @@ trait Reactable
     /**
      * Get user model.
      *
-     * @param  mixed           $user
-     * @return ReactsInterface
-     *
-     * @throw \Qirolab\Laravel\Reactions\Exceptions\InvalidReactionUser
+     * @return \Illuminate\Contracts\Auth\Authenticatable|null
      */
-    private function getUser($user = null)
+    private function getUser()
     {
-        if (! $user && auth()->check()) {
+        if (auth()->check()) {
             return auth()->user();
         }
 
-        if ($user instanceof ReactsInterface) {
-            return $user;
-        }
-
-        if (! $user) {
-            throw InvalidReactionUser::notDefined();
-        }
-
-        throw InvalidReactionUser::invalidReactByUser();
+        throw InvalidReactionUser::notDefined();
     }
 
     /**
