@@ -1,5 +1,5 @@
 {
-    "name": "qirolab/laravel-reactions",
+    "name": "eolejian/laravel-react",
     "description": "Implement reactions (like, dislike, love, emotion etc) on Laravel Eloquent models.",
     "type": "library",
     "license": "MIT",
