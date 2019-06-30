@@ -30,7 +30,7 @@ trait Reactable
     {
         $model = $model ?: $this->resolveUserModel();
 
-        $reactions = $this->reactions;
+        $reactions = $this->reactions->where('reacter_type', $model);
 
         if($type){
             $reactions = $reactions->where('type', $type);
@@ -54,13 +54,22 @@ trait Reactable
     /**
      * Reaction summary.
      *
-     * @param string $by
+     * @param string $key_1
+     * @param string $key_2
      * @return mixed
      */
-    public function reactionSummary($by = 'type')
+    public function reactionSummary($key_1 = 'type', $key_2 = null)
     {
-        return $this->reactions->groupBy($by)->map(function ($val) {
-            return $val->count();
+        if(!$key_2){
+            return $this->reactions->groupBy($key_1)->map(function ($val) {
+                return $val->count();
+            });
+        }
+
+        return $this->reactions->groupBy($key_1)->map(function($items, $key) use ($key_2){
+            return $items->groupBy($key_2)->map(function($v){
+                return $v->count();
+            });
         });
     }
 
@@ -136,8 +145,8 @@ trait Reactable
         $model = $model ?: $this->getUser();
 
         return $this->reactions
-                    ->where(['reacter_id' => $model->id, 'reacter_type' => get_class($model)])
-                    ->first();
+            ->where(['reacter_id' => $model->id, 'reacter_type' => get_class($model)])
+            ->first();
     }
 
     /**
@@ -199,7 +208,7 @@ trait Reactable
 
         return $query->whereHas('reactions', function ($innerQuery) use ($model, $type) {
             $innerQuery->where('reacter_id', $model->id)
-                        ->where('reacter_type', get_class($model));
+                ->where('reacter_type', get_class($model));
 
             if ($type) {
                 $innerQuery->where('type', $type);
